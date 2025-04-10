@@ -48,7 +48,20 @@ cors_proxy.createServer({
   console.log('Running CORS Anywhere on ' + host + ':' + port);
 });
 */
+/*
+var http = require('http'),
+    httpProxy = require('http-proxy');
 
+//
+// Create a proxy server with custom application logic
+//
+httpProxy.createProxyServer({target:'http://www.ncps-k12.org'}).listen(8000);
+
+//console.log("listening on port 5050")
+//server.listen(5050);
+*/
+
+/*
 var http = require('http'),
     httpProxy = require('http-proxy');
 
@@ -57,16 +70,56 @@ var http = require('http'),
 //
 var proxy = httpProxy.createProxyServer({});
 
+// To modify the proxy connection before data is sent, you can listen
+// for the 'proxyReq' event. When the event is fired, you will receive
+// the following arguments:
+// (http.ClientRequest proxyReq, http.IncomingMessage req,
+//  http.ServerResponse res, Object options). This mechanism is useful when
+// you need to modify the proxy request before the proxy connection
+// is made to the target.
 //
-// Create your custom server and just call `proxy.web()` to proxy
-// a web request to the target passed in the options
-// also you can use `proxy.ws()` to proxy a websockets request
-//
+proxy.on('proxyReq', function(proxyReq, req, res, options) {
+  proxyReq.setHeader('Host', 'http://www.ncps-k12.org');
+});
+
 var server = http.createServer(function(req, res) {
   // You can define here your custom logic to handle the request
   // and then proxy the request.
-  proxy.web(req, res, { target: 'https://www.ncps-k12.org' });
+  //console.log(req, res)
+  proxy.web(req, res, {
+    //target: 'http://www.ncps-k12.org'
+    target: 'http://www.ncps-k12.org'
+  });
 });
 
 console.log("listening on port 5050")
 server.listen(5050);
+*/
+
+var http = require('http');
+var https = require('https');
+
+http.createServer(onRequest).listen(5050);
+
+function onRequest(client_req, client_res) {
+  console.log('serve: ' + client_req.url);
+
+  var options = {
+    hostname: 'www.ncps-k12.org',
+    port: 443,
+    path: "/o/nchs/dining?filter=27652",//client_req.url,
+    method: client_req.method//,
+    //headers: client_req.headers
+  };
+
+  var proxy = https.request(options, function (res) {
+    client_res.writeHead(res.statusCode, res.headers)
+    res.pipe(client_res, {
+      end: true
+    });
+  });
+
+  client_req.pipe(proxy, {
+    end: true
+  });
+}
